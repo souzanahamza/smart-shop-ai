@@ -1,0 +1,8 @@
+streamlit
+pandas
+google-generativeai
+qdrant-client
+sentence-transformers
+torch
+nest_asyncio
+pyngrok
