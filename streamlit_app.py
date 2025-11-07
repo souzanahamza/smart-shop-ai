@@ -85,8 +85,7 @@ def load_and_prepare_data(file_path):
     df_cleaned['product_id'] = df_cleaned['product_id'].astype('Int64')
     return df_cleaned
 
-# --- 3. Argument Parsing and Initialization ---
-
+# --- 3. Argument Parsing and Initialization -----
 try:
     GOOGLE_API_KEY_ARG = st.secrets["GOOGLE_API_KEY"]
     QDRANT_API_KEY_ARG = st.secrets["QDRANT_API_KEY"]
