@@ -86,8 +86,6 @@ def load_and_prepare_data(file_path):
     return df_cleaned
 
 # --- 3. Argument Parsing and Initialization ---
-# 
-
 
 try:
     GOOGLE_API_KEY_ARG = st.secrets["GOOGLE_API_KEY"]
