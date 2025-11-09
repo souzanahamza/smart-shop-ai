@@ -53,7 +53,7 @@ except Exception as e:
 st.title("🛍️ Your Smart Shopping Assistant")
 
 # Display Supabase connection status (for debugging)
-display_supabase_status()
+# display_supabase_status()
 
 st.markdown("""
 <span style='font-size:17px; color:#333;'>
