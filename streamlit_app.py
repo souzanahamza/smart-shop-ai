@@ -21,6 +21,7 @@ from ui.components import display_products_in_grid
 
 # Import chat history utilities
 from utils.chat_history import load_chat_history_from_supabase, save_chat_history_to_supabase
+from utils.supabase_test import display_supabase_status
 
 # --- 1. Page and App Configuration ---
 st.set_page_config(
@@ -50,6 +51,10 @@ except Exception as e:
 
 # --- 3. Streamlit User Interface ---
 st.title("🛍️ Your Smart Shopping Assistant")
+
+# Display Supabase connection status (for debugging)
+display_supabase_status()
+
 st.markdown("""
 <span style='font-size:17px; color:#333;'>
 Hello! 👋

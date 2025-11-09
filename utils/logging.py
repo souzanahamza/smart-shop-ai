@@ -24,9 +24,16 @@ def log_interaction_to_csv(log_data):
             "full_synthesis_prompt": log_data.get("full_synthesis_prompt"),
         }
         
-        supabase.table("interaction_logs").insert(insert_data).execute()
+        result = supabase.table("interaction_logs").insert(insert_data).execute()
+        if hasattr(st, 'session_state'):
+            if "supabase_debug" in st.session_state:
+                st.session_state.supabase_debug.append(f"✅ Logged interaction: {log_data.get('original_query', 'N/A')[:50]}")
     except Exception as e:
-        # Silently fail to avoid disrupting the user experience
-        # In production, you might want to log this to a monitoring service
-        print(f"Error logging interaction to Supabase: {e}")
+        # Log error for debugging
+        error_msg = f"Error logging interaction to Supabase: {str(e)}"
+        print(error_msg)
+        if hasattr(st, 'session_state'):
+            if "supabase_errors" not in st.session_state:
+                st.session_state.supabase_errors = []
+            st.session_state.supabase_errors.append(error_msg)
 

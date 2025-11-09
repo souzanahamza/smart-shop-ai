@@ -107,7 +107,12 @@ def load_chat_history_from_supabase() -> list:
         return messages
     except Exception as e:
         # If there's an error, return empty list (graceful degradation)
-        print(f"Error loading chat history from Supabase: {e}")
+        error_msg = f"Error loading chat history from Supabase: {str(e)}"
+        print(error_msg)
+        if hasattr(st, 'session_state'):
+            if "supabase_errors" not in st.session_state:
+                st.session_state.supabase_errors = []
+            st.session_state.supabase_errors.append(error_msg)
         return []
 
 
@@ -136,12 +141,23 @@ def save_message_to_supabase(message: dict, message_index: int):
         }
         
         # Use upsert to handle updates if message_index already exists
-        supabase.table("chat_history")\
+        result = supabase.table("chat_history")\
             .upsert(insert_data, on_conflict="session_id,message_index")\
             .execute()
+        
+        # Debug logging
+        if hasattr(st, 'session_state'):
+            if "supabase_debug" not in st.session_state:
+                st.session_state.supabase_debug = []
+            st.session_state.supabase_debug.append(f"✅ Saved message {message_index}: {message.get('content', '')[:50]}")
     except Exception as e:
-        # Silently fail to avoid disrupting the user experience
-        print(f"Error saving message to Supabase: {e}")
+        # Log error for debugging
+        error_msg = f"Error saving message to Supabase: {str(e)}"
+        print(error_msg)
+        if hasattr(st, 'session_state'):
+            if "supabase_errors" not in st.session_state:
+                st.session_state.supabase_errors = []
+            st.session_state.supabase_errors.append(error_msg)
 
 
 def save_chat_history_to_supabase(messages: list):
