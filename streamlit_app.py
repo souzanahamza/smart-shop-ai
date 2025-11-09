@@ -19,6 +19,9 @@ from rag.retrieval import get_similar_products
 # Import UI components
 from ui.components import display_products_in_grid
 
+# Import chat history utilities
+from utils.chat_history import load_chat_history_from_supabase, save_chat_history_to_supabase
+
 # --- 1. Page and App Configuration ---
 st.set_page_config(
     page_title="SmartShop Assistant",
@@ -55,8 +58,9 @@ Let's make finding the perfect product effortless and inspiring. 💫
 </span>
 """, unsafe_allow_html=True)
 
+# Load chat history from Supabase on initialization
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = load_chat_history_from_supabase()
 if "find_similar_to" in st.session_state and st.session_state.find_similar_to:
     product_id = st.session_state.find_similar_to
     st.session_state.find_similar_to = None
@@ -73,11 +77,13 @@ if "find_similar_to" in st.session_state and st.session_state.find_similar_to:
         else:
             content = f"Sorry, I couldn't find any similar items for product ID {product_id}."
 
-        st.session_state.messages.append({
+        new_message = {
             "role": "assistant",
             "content": content,
             "products": similar_products
-        })
+        }
+        st.session_state.messages.append(new_message)
+        save_chat_history_to_supabase(st.session_state.messages)
         st.rerun()
 
 for i, message in enumerate(st.session_state.messages):
@@ -104,7 +110,9 @@ for i, message in enumerate(st.session_state.messages):
                     st.rerun()
 
 if prompt := st.chat_input("What are you looking for today?"):
-    st.session_state.messages.append({"role": "user", "content": prompt, "products": []})
+    user_message = {"role": "user", "content": prompt, "products": []}
+    st.session_state.messages.append(user_message)
+    save_chat_history_to_supabase(st.session_state.messages)
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -142,8 +150,10 @@ if prompt := st.chat_input("What are you looking for today?"):
                         st.session_state[num_visible_key] += 3
                         st.rerun()
 
-    st.session_state.messages.append({
+    assistant_message = {
         "role": "assistant",
         "content": recommendation_text,
         "products": selected_products
-    })
+    }
+    st.session_state.messages.append(assistant_message)
+    save_chat_history_to_supabase(st.session_state.messages)

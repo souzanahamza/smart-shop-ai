@@ -6,3 +6,4 @@ sentence-transformers
 torch
 nest_asyncio
 pyngrok
+supabase
