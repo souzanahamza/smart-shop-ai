@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Main Streamlit application entry point for Smart Shop Assistant."""
 import streamlit as st
 import torch
@@ -83,7 +82,7 @@ if "find_similar_to" in st.session_state and st.session_state.find_similar_to:
         }
         st.session_state.messages.append(new_message)
         save_chat_history_to_supabase(st.session_state.messages)
-        st.rerun() # نعيد التنفيذ لعرض الرسالة الجديدة عبر حلقة العرض الرئيسية
+        st.rerun() 
 
 for i, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
@@ -114,15 +113,12 @@ for i, message in enumerate(st.session_state.messages):
 
 
 
-# --- 1. التعامل مع مدخلات المستخدم ---
 if prompt := st.chat_input("What are you looking for today?", accept_file=True):
-    # استخلاص النص والصورة (إن وُجدت)
     user_text = prompt.text.strip() if prompt.text else ""
     image_bytes = None
 
     if prompt.files:
         uploaded_file = prompt.files[0]
-        # نقرأ المحتوى بايتياً بشكل صريح
         try:
             image_bytes = uploaded_file.read()
             if not isinstance(image_bytes, (bytes, bytearray)):
@@ -130,9 +126,7 @@ if prompt := st.chat_input("What are you looking for today?", accept_file=True):
         except Exception as e:
             st.warning(f"Could not read image bytes: {e}")
             image_bytes = None
-  # بايتات الصورة
 
-    # حفظ الرسالة في الجلسة
     user_message = {
     "role": "user",
     "content": user_text or "[Image uploaded]",
@@ -141,14 +135,12 @@ if prompt := st.chat_input("What are you looking for today?", accept_file=True):
 
     st.session_state.messages.append(user_message)
 
-    # تمرير النص والصورة للمعالجة
     st.session_state.prompt_to_process = {"text": user_text, "image": image_bytes}
 
     save_chat_history_to_supabase(st.session_state.messages)
     st.rerun()
 
 
-# --- 2. تنفيذ المعالجة عند وجود طلب ---
 if "prompt_to_process" in st.session_state:
     data = st.session_state.pop("prompt_to_process")
     text_prompt = data["text"]
