@@ -17,6 +17,7 @@ def log_interaction_to_csv(log_data):
             "timestamp": log_data.get("timestamp"),
             "original_query": log_data.get("original_query"),
             "optimized_query": log_data.get("optimized_query"),
+            "retrieval_mode": log_data.get("retrieval_mode"),
             "llm_response_text": log_data.get("llm_response_text"),
             "retrieved_products": log_data.get("retrieved_products (id:score)"),
             "selected_products": log_data.get("selected_products (id:score)"),

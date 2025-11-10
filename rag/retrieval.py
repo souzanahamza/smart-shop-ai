@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions for retrieving products from Qdrant vector database."""
 import streamlit as st
 from qdrant_client import models
@@ -89,3 +88,54 @@ def get_similar_products(product_id, qdrant_client, similarity_threshold=0.85, m
         st.error(f"Could not find similar products: {e}")
         return []
 
+
+def retrieve_hybrid_clip(
+    text_query,
+    image_vector,
+    clip_model,
+    clip_processor,
+    qdrant_client,
+    alpha=0.6,
+    top_k=20
+):
+    import numpy as np
+    import torch
+    from qdrant_client import models
+
+    if image_vector is None:
+        st.warning("No image vector provided for hybrid CLIP retrieval.")
+        return []
+
+    try:
+        # 1. Normalize image vector
+        image_vec = image_vector / np.linalg.norm(image_vector)
+
+        # 2. Optional text modification
+        if text_query and text_query.strip():
+            text_inputs = clip_processor(text=[text_query], return_tensors="pt")
+            with torch.no_grad():
+                text_features = clip_model.get_text_features(**text_inputs).squeeze().cpu().numpy()
+            text_vec = text_features / np.linalg.norm(text_features)
+
+            # 3. Combine inside CLIP space
+            hybrid_vec = image_vec + alpha * text_vec
+            hybrid_vec = hybrid_vec / np.linalg.norm(hybrid_vec)
+        else:
+            hybrid_vec = image_vec
+
+        # 4. Search in Qdrant (image space)
+        search_results = qdrant_client.search(
+            collection_name=COLLECTION_NAME,
+            query_vector=models.NamedVector(
+                name="image",
+                vector=hybrid_vec.tolist()
+            ),
+            limit=top_k,
+            with_payload=True
+        )
+
+        return [models.ScoredPoint.model_validate(res) for res in search_results]
+
+    except Exception as e:
+        st.error(f"Error during hybrid CLIP retrieval: {e}")
+        return []

@@ -36,3 +36,47 @@ def generate_optimized_search_query(user_query, chat_history, gemini_model):
         print(f"Error during query optimization: {e}. Falling back to original query.")
         return user_query
 
+def generate_refine_translation_prompt(user_query):
+    """Prompt for translation + intelligent refinement and filtering of noisy user input."""
+    return f"""You are a multilingual shopping query refinement assistant.
+Your job is to **translate, clean, and lightly refine** the user's input into clear, concise English suitable for product retrieval.
+
+Core goals:
+1. Preserve the user's real intent **only if it is about shopping or describing an item**.
+2. Ignore or simplify irrelevant chatter (like greetings, jokes, reactions, or filler words).
+3. If the message is not a shopping-related query, return a short neutral fallback like "general shopping query".
+4. If the text is already in English and meaningful, keep it as-is (fix minor errors only).
+5. If it's in Arabic or mixed, translate it faithfully to English.
+6. Always return a short, search-friendly phrase — not a sentence.
+
+Examples:
+- "بدي فستان مثل هاد بس أزرق" → "blue dress similar to this"
+- "هي شو رأيك فيها؟" → "similar item"  
+- "هههه بدي شي هيك ناعم" → "elegant outfit"
+- "send me link" → "general shopping query"
+- "نفسه بس رجالي" → "same style but for men"
+- "شي بنفس الروح" → "something with a similar vibe"
+- "هاد الشي متوفر بلون تاني؟" → "available in another color?"
+- "forget it 😂" → "general shopping query"
+
+User Input:
+"{user_query}"
+
+Cleaned and Refined English Query:"""
+
+
+def translate_and_refine_query_for_hybrid(user_query, gemini_model):
+    """Translates, filters, and refines user text for hybrid CLIP or text-only retrieval."""
+    if not user_query or not user_query.strip():
+        return "general shopping query"
+    prompt = generate_refine_translation_prompt(user_query)
+    try:
+        response = gemini_model.generate_content(prompt)
+        refined = response.text.strip().replace('"', '').replace("'", "")
+        # fallback if the model gives empty or weird content
+        if len(refined) < 2 or refined.lower() in ["", "none", "n/a"]:
+            refined = "general shopping query"
+        return refined
+    except Exception as e:
+        print(f"[Warning] Query refinement failed: {e}")
+        return "general shopping query"

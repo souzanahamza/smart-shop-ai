@@ -48,9 +48,6 @@ try:
 except Exception as e:
     st.error(f"Could not connect to Qdrant collection '{COLLECTION_NAME}'. Error: {e}")
     st.stop()
-# ==============================================================================
-# 🎨 3. UI Presentation and State Initialization
-# ==============================================================================
 
 st.title("🛍️ Your Smart Shopping Assistant")
 st.markdown("""
@@ -61,136 +58,122 @@ Let's make finding the perfect product effortless and inspiring. 💫
 </span>
 """, unsafe_allow_html=True)
 
-# --- Initialize Session State ---
-# Load chat history from Supabase only once at the beginning of the session.
+
 if "messages" not in st.session_state:
     st.session_state.messages = load_chat_history_from_supabase()
 
-# ==============================================================================
-# 💬 4. Chat History Display (Single Source of Truth)
-# ==============================================================================
-# This loop renders the entire chat history from the session state.
-# It runs on every script rerun, ensuring the UI is always up-to-date.
+if "find_similar_to" in st.session_state and st.session_state.find_similar_to:
+    product_id = st.session_state.pop("find_similar_to") 
+
+    with st.spinner(f"Finding items similar to product {product_id}..."):
+        similar_products = get_similar_products(product_id, qdrant_client)
+
+        if similar_products:
+            try:
+                source_product_name = df_cleaned[df_cleaned['product_id'] == product_id]['product_name'].iloc[0]
+                content = f"Here are some recommendations similar to '{source_product_name}':"
+            except (IndexError, KeyError, ValueError):
+                content = f"Here are some recommendations similar to product ID {product_id}:"
+        else:
+            content = f"Sorry, I couldn't find any similar items for product ID {product_id}."
+
+        new_message = {
+            "role": "assistant",
+            "content": content,
+            "products": similar_products
+        }
+        st.session_state.messages.append(new_message)
+        save_chat_history_to_supabase(st.session_state.messages)
+        st.rerun() # نعيد التنفيذ لعرض الرسالة الجديدة عبر حلقة العرض الرئيسية
+
 for i, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        
-        # If the message contains products, display them in a grid.
-        if message.get("products"):
+
+        if "products" in message and message["products"]:
             total_products = len(message["products"])
             num_visible_key = f"num_visible_{i}"
+
             if num_visible_key not in st.session_state:
-                st.session_state[num_visible_key] = 3  # Initially show 3 products
-            
+                st.session_state[num_visible_key] = 3
+
             num_visible = st.session_state[num_visible_key]
             products_to_display = message["products"][:num_visible]
             
             display_products_in_grid(products_to_display, message_key_prefix=i)
-            
-            # "Show more" button for product pagination
+
             if num_visible < total_products:
-                if st.button("Show more..", key=f"btn_more_{i}"):
+                button_key = f"btn_more_{i}"
+                if st.button("Show more..", key=button_key):
                     st.session_state[num_visible_key] = min(num_visible + 3, total_products)
                     st.rerun()
+        if message.get("image"):
+            from io import BytesIO
+            from PIL import Image
+            img = Image.open(BytesIO(message["image"].encode("latin1")))
+            st.image(img, caption="uploaded image", use_container_width=False , output_format="JPEG" , width = 100)
 
-# ==============================================================================
-# 🧠 5. AI Response Generation (Asynchronous-like Logic)
-# ==============================================================================
-# This section handles the "thinking" part of the assistant. It runs only when
-# specific flags are set in the session state.
 
-# --- 5a. Generate "More like this" Response ---
-if st.session_state.get("find_similar_to"):
-    product_id = st.session_state.get("find_similar_to")
-    assistant_message = None
 
-    try:
-        # Display the spinner inside the chat bubble for a seamless UX
-        with st.chat_message("assistant"):
-            with st.spinner(f"Finding items similar to product {product_id}..."):
-                similar_products = get_similar_products(product_id, qdrant_client)
-                
-                if similar_products:
-                    try:
-                        source_product_name = df_cleaned[df_cleaned['product_id'] == product_id]['product_name'].iloc[0]
-                        content = f"Here are some recommendations similar to '{source_product_name}':"
-                    except (IndexError, KeyError, ValueError):
-                        content = f"Here are some recommendations similar to product ID {product_id}:"
-                else:
-                    content = f"Sorry, I couldn't find any similar items for product ID {product_id}."
-                
-                assistant_message = {"role": "assistant", "content": content, "products": similar_products or []}
+# --- 1. التعامل مع مدخلات المستخدم ---
+if prompt := st.chat_input("What are you looking for today?", accept_file=True):
+    # استخلاص النص والصورة (إن وُجدت)
+    user_text = prompt.text.strip() if prompt.text else ""
+    image_bytes = None
 
-    except Exception as e:
-        st.error("Sorry, I couldn't process your request right now. Please try again.")
-        print(f"Error during get_similar_products: {e}") # For debugging
-        assistant_message = {"role": "assistant", "content": "Sorry, an unexpected error occurred."}
-    
-    finally:
-        # This block always runs, ensuring the state is cleaned up
-        if assistant_message:
-            st.session_state.messages.append(assistant_message)
-            try: save_chat_history_to_supabase(st.session_state.messages)
-            except Exception: pass # Don't block UI if saving fails
-        
-        del st.session_state["find_similar_to"] # Clean up the flag
-        st.rerun()
+    if prompt.files:
+        uploaded_file = prompt.files[0]
+        # نقرأ المحتوى بايتياً بشكل صريح
+        try:
+            image_bytes = uploaded_file.read()
+            if not isinstance(image_bytes, (bytes, bytearray)):
+                image_bytes = bytes(image_bytes)
+        except Exception as e:
+            st.warning(f"Could not read image bytes: {e}")
+            image_bytes = None
+  # بايتات الصورة
 
-# --- 5b. Generate Response to a New Prompt ---
-if st.session_state.get("generating_response"):
-    prompt_to_process = st.session_state.get("last_prompt")
-    assistant_message = None
+    # حفظ الرسالة في الجلسة
+    user_message = {
+    "role": "user",
+    "content": user_text or "[Image uploaded]",
+    "image": image_bytes.decode("latin1") if image_bytes else None
+}
 
-    try:
-        with st.chat_message("assistant"):
-            with st.spinner("your SmartShop Assistant is thinking..."):
-                recommendation_text, selected_products = get_recommendation(
-                    prompt_to_process, st.session_state.messages, embedding_model, qdrant_client, gemini_model
-                )
-        assistant_message = {"role": "assistant", "content": recommendation_text, "products": selected_products}
-    
-    except Exception as e:
-        st.error("I'm sorry, I encountered an issue. Please try asking in a different way.")
-        print(f"Error during get_recommendation: {e}") # For debugging
-        assistant_message = {"role": "assistant", "content": "I'm having trouble connecting right now. Please try again later."}
-
-    finally:
-        if assistant_message:
-            st.session_state.messages.append(assistant_message)
-            try: save_chat_history_to_supabase(st.session_state.messages)
-            except Exception: pass
-        
-        # Clean up state flags to prevent re-running
-        del st.session_state["generating_response"]
-        if "last_prompt" in st.session_state:
-            del st.session_state["last_prompt"]
-        
-        st.rerun()
-
-# ==============================================================================
-# ⌨️ 6. User Input Handling
-# ==============================================================================
-# This is the entry point for user interaction. It only handles the first step:
-# capturing the input and setting a flag for the generation logic.
-if prompt := st.chat_input(
-    "What are you looking for today?",
-    # Disable the input while the assistant is busy with any task
-    disabled=st.session_state.get("generating_response", False) or st.session_state.get("find_similar_to", False)
-):
-    # 1. Immediately add the user's message to the state to display it
-    user_message = {"role": "user", "content": prompt}
     st.session_state.messages.append(user_message)
-    
-    # 2. Set flags to trigger the AI response generation on the next rerun
-    st.session_state.last_prompt = prompt
-    st.session_state.generating_response = True
-    
-    # 3. Save the updated chat history securely
-    try:
-        save_chat_history_to_supabase(st.session_state.messages)
-    except Exception:
-        pass # Don't block UI
-    
-    # 4. Rerun the app immediately. This makes the user's message appear instantly
-    # and starts the "thinking" process defined in section 5.
+
+    # تمرير النص والصورة للمعالجة
+    st.session_state.prompt_to_process = {"text": user_text, "image": image_bytes}
+
+    save_chat_history_to_supabase(st.session_state.messages)
+    st.rerun()
+
+
+# --- 2. تنفيذ المعالجة عند وجود طلب ---
+if "prompt_to_process" in st.session_state:
+    data = st.session_state.pop("prompt_to_process")
+    text_prompt = data["text"]
+    image_data = data["image"]
+
+    with st.chat_message("assistant"):
+        with st.spinner("Your SmartShop Assistant is thinking..."):
+            recommendation_text, selected_products = get_recommendation(
+                text_prompt,
+                st.session_state.messages,
+                embedding_model,
+                qdrant_client,
+                gemini_model,
+                image_bytes=image_data,
+                clip_model=clip_model,
+                clip_processor=clip_processor
+            )
+
+    assistant_message = {
+        "role": "assistant",
+        "content": recommendation_text,
+        "products": selected_products
+    }
+
+    st.session_state.messages.append(assistant_message)
+    save_chat_history_to_supabase(st.session_state.messages)
     st.rerun()
