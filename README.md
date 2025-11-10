@@ -81,10 +81,11 @@ A powerful Large Language Model (Google Gemini) then analyzes the retrieved resu
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/souzanahamza/smart-shop.git
    cd smart-shop
-```
+    ```
 
 2. **Create and activate a virtual environment:**
 
