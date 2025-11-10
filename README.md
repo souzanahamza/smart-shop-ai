@@ -109,8 +109,10 @@ A powerful Large Language Model (Google Gemini) then analyzes the retrieved resu
    Create `.streamlit/secrets.toml`:
 
    ```toml
-   GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY_HERE"
-   QDRANT_API_KEY = "YOUR_QDRANT_API_KEY_HERE"
+   GOOGLE_API_KEY = "YOUR_NEW_GOOGLE_API_KEY"
+   QDRANT_API_KEY = "YOUR_NEW_QDRANT_API_KEY"
+   SUPABASE_URL = "YOUR_SUPABASE_URL"
+   SUPABASE_KEY = "YOUR_SUPABASE_SERVICE_ROLE_KEY"
    ```
 
 ### Run the App
