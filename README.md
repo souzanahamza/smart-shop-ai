@@ -1,38 +1,50 @@
 # SmartShop Assistant 🛍️
 
-An intelligent, AI-powered shopping assistant built with Streamlit and a Retrieval-Augmented Generation (RAG) pipeline to provide a seamless and conversational product discovery experience.
+An intelligent, AI-powered shopping assistant built with Streamlit and a Retrieval-Augmented Generation (RAG) pipeline to provide a seamless, multimodal (text + image) product discovery experience.
+
+---
 
 ## ✨ About The Project
 
-Finding the perfect product in a large e-commerce catalog can be challenging. SmartShop Assistant solves this by allowing users to describe what they're looking for in natural language. The application understands the user's intent, searches a vector database for relevant products, and uses a powerful Large Language Model (Google's Gemini) to present smart, context-aware recommendations.
+Finding the perfect product in a large e-commerce catalog can be challenging.  
+SmartShop Assistant solves this by allowing users to **describe or show** what they’re looking for — through text, image, or both.  
+
+The assistant understands natural language queries, interprets uploaded images using CLIP embeddings, and fuses both modalities (text + image) to deliver precise, visually aligned product recommendations.  
+A powerful Large Language Model (Google Gemini) then analyzes the retrieved results and generates friendly, context-aware responses.
 
 ---
 
 ## 🚀 Features
 
--   **Conversational Search:** Interact with the assistant just like you would with a human sales associate.
--   **Context-Aware Recommendations:** The assistant remembers the conversation history to refine its suggestions.
--   **Semantic Product Search:** Powered by `sentence-transformers` and a **Qdrant** vector database to find products based on meaning, not just keywords.
--   **Intelligent Synthesis:** Uses **Google Gemini** to analyze search results and generate helpful, human-like responses.
--   **Modular & Scalable:** The codebase is organized into logical modules for easy maintenance and future expansion.
+- **Conversational Search:** Chat naturally with the AI to find products like you would with a real sales assistant.  
+- **Context-Aware Recommendations:** The assistant remembers the conversation to refine suggestions dynamically.  
+- **Semantic Product Search:** Powered by `sentence-transformers` and **Qdrant**, enabling retrieval by meaning, not just keywords.  
+- **Visual & Hybrid Search:** Upload an image (optionally with text like “I want this but in blue”) to find visually and semantically similar items using CLIP embeddings.  
+- **“More Like This” Visual Matching:** Instantly explore products that look similar to any item in the catalog.  
+- **Intelligent Synthesis:** Uses **Google Gemini** to generate human-like shopping advice based on search results.  
+- **Cloud Logging & Memory:** Chat interactions and recommendations are stored securely in **Supabase** for history and insights.  
+- **Modular & Scalable:** Clean architecture built for easy maintenance and future expansion.  
 
 ---
 
 ## 🛠️ Tech Stack
 
--   **Frontend:** [Streamlit](https://streamlit.io/)
--   **Vector Database:** [Qdrant](https://qdrant.tech/)
--   **LLM & Generative AI:** [Google Gemini](https://ai.google.dev/)
--   **Embedding Models:** [SentenceTransformers (e5-base-v2)](https://huggingface.co/intfloat/e5-base-v2), [CLIP](https://huggingface.co/openai/clip-vit-base-patch32)
--   **Core Libraries:** Pandas, Transformers, PyTorch
+- **Frontend:** [Streamlit](https://streamlit.io/)  
+- **Vector Database:** [Qdrant](https://qdrant.tech/)  
+- **LLM & Generative AI:** [Google Gemini](https://ai.google.dev/)  
+- **Embeddings:**
+  - [SentenceTransformers (e5-base-v2)](https://huggingface.co/intfloat/e5-base-v2) – for text queries  
+  - [CLIP](https://huggingface.co/openai/clip-vit-base-patch32) – for image and hybrid understanding  
+- **Multimodal Fusion:** Weighted CLIP-based hybrid retrieval (text + image)  
+- **Cloud Storage:** [Supabase](https://supabase.com/) for chat history and logs  
+- **Core Libraries:** Pandas, Transformers, PyTorch  
 
 ---
 
 ## 📂 Project Structure
 
-The project is structured using a modular approach to separate concerns, making the code clean and maintainable.
+````
 
-```
 .
 ├── .streamlit/
 │   └── secrets.toml         # For storing API keys securely
@@ -40,80 +52,87 @@ The project is structured using a modular approach to separate concerns, making 
 │   ├── combined_products2.csv
 │   └── loader.py            # Logic for loading and preparing data
 ├── models/
-│   └── loaders.py           # Logic for loading ML models (embeddings, CLIP)
+│   └── loaders.py           # Loads ML models (SentenceTransformer, CLIP, Gemini)
 ├── rag/
-│   ├── query_rewriter.py    # Rewrites user queries for better search
-│   ├── retrieval.py         # Handles searching the Qdrant vector DB
-│   └── synthesis.py         # Generates the final AI response
+│   ├── query_rewriter.py    # Rewrites & translates queries (supports hybrid text+image)
+│   ├── retrieval.py         # Handles text, visual, and hybrid CLIP-based retrieval
+│   └── synthesis.py         # Generates Gemini responses aware of visual context
 ├── ui/
-│   └── components.py        # Streamlit UI helper functions (e.g., product grid)
+│   └── components.py        # Streamlit UI helpers (product grid, buttons, etc.)
 ├── utils/
-│   ├── helpers.py           # General helper functions
-│   └── logging.py           # Functions for logging interactions
+│   ├── helpers.py           # General helper utilities
+│   ├── logging.py           # Interaction logging (Supabase)
+│   └── supabase_client.py   # Database connection utilities
 │
-├── config.py                # Main configuration file for paths and settings
+├── config.py                # Configuration for models, database, and constants
 ├── requirements.txt         # Project dependencies
-└── streamlit_app.py         # The main entry point for the Streamlit app
-```
+└── streamlit_app.py         # Main entry point for the Streamlit app
+
+````
 
 ---
 
 ## 🏁 Getting Started
 
-Follow these steps to set up and run the project locally.
-
 ### Prerequisites
-
--   Python 3.9+
--   Git
+- Python 3.9+
+- Git
 
 ### Installation
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/souzanahamza/smart-shop.git
-    cd smart-shop
-    ```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/souzanahamza/smart-shop.git
+   cd smart-shop
+```
 
-2.  **Create and activate a virtual environment:**
-    ```bash
-    # For Windows
-    python -m venv .venv
-    .venv\Scripts\activate
+2. **Create and activate a virtual environment:**
 
-    # For macOS/Linux
-    python3 -m venv .venv
-    source .venv/bin/activate
-    ```
+   ```bash
+   # Windows
+   python -m venv .venv
+   .venv\Scripts\activate
 
-3.  **Install the required dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+   # macOS/Linux
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
-4.  **Set up your API Keys:**
-    -   Create a folder named `.streamlit` in the project's root directory.
-    -   Inside it, create a file named `secrets.toml`.
-    -   Add your API keys to this file as shown below:
-        ```toml
-        # .streamlit/secrets.toml
+3. **Install dependencies:**
 
-        GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY_HERE"
-        QDRANT_API_KEY = "YOUR_QDRANT_API_KEY_HERE"
-        ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Running the App
+4. **Add API keys:**
+   Create `.streamlit/secrets.toml`:
 
-Once the installation is complete, run the following command in your terminal:
+   ```toml
+   GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY_HERE"
+   QDRANT_API_KEY = "YOUR_QDRANT_API_KEY_HERE"
+   ```
+
+### Run the App
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-The application should now be running and accessible in your web browser!
+Then open the displayed local URL in your browser.
+
+---
+
+## 🧠 How It Works
+
+1. **User Interaction:** The user enters a query — text, image, or both.
+2. **Query Optimization:** The system rewrites and translates vague or multilingual input into a precise English query.
+3. **Retrieval:** The system searches Qdrant using text embeddings, image embeddings, or a hybrid CLIP vector.
+4. **Synthesis:** Gemini reviews retrieved results and generates a friendly, contextual recommendation message.
+5. **Display:** Products are shown in an interactive Streamlit chat interface, allowing further refinements like “More like this 🔁”.
 
 ---
 
 ## 👤 Contact
 
-Souzana Hamza - [GitHub Profile](https://github.com/souzanahamza)
+**Souzana Hamza**
+[GitHub Profile](https://github.com/souzanahamza)
