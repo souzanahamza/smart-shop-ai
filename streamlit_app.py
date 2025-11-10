@@ -3,7 +3,6 @@
 import streamlit as st
 import torch
 
-# Import configuration
 from config import COLLECTION_NAME
 
 # Import model loaders
